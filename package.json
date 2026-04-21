@@ -1,0 +1,52 @@
+{
+  "name": "knowledgebased",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Reusable MCP server for project-local knowledge graphs with semantic search",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devkanro/knowledgebased.git"
+  },
+  "bin": {
+    "knowledgebased": "./bin/knowledgebased.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node bin/knowledgebased.js",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "knowledge",
+    "knowledgebased",
+    "semantic-search",
+    "embeddings",
+    "rag"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@huggingface/transformers": "^4.1.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "gray-matter": "^4.0.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

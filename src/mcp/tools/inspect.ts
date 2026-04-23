@@ -61,14 +61,17 @@ export const registerInspectTools: ToolRegistrar = (server, dctx) => {
   server.tool("list_sources", "List all loaded knowledge sources with their aliases, paths, and fragment counts.", {}, async () => {
     const ctx = await dctx.waitForInit();
     const sources = ctx.graph.sources;
+
+    const header = `startDir: ${ctx.outputRoot}\nprocess.cwd(): ${process.cwd()}`;
+
     if (sources.length === 0) {
-      return text("No knowledge sources loaded.");
+      return text(`${header}\n\nNo knowledge sources loaded.`);
     }
     const lines = sources.map(s => {
       const count = [...ctx.graph.sourceMap.values()].filter(v => v.sourceId === s.sourceId).length;
       return `- **${s.alias}**: ${s.knowledgeDir} (${count} fragments, refScope: ${s.refScope})`;
     });
-    return text(`Loaded ${sources.length} source(s):\n\n${lines.join("\n")}`);
+    return text(`${header}\n\nLoaded ${sources.length} source(s):\n\n${lines.join("\n")}`);
   });
 };
 

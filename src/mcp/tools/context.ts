@@ -13,4 +13,47 @@ export interface ToolContext {
   outputRoot: string;
 }
 
-export type ToolRegistrar = (server: McpServer, ctx: ToolContext) => void;
+/**
+ * Deferred version of ToolContext for lazy initialization.
+ * Tools await `ready` before accessing the underlying context.
+ */
+export class DeferredToolContext {
+  private _ctx: ToolContext | null = null;
+  private _error: Error | null = null;
+  private _resolveReady!: () => void;
+  readonly ready: Promise<void>;
+
+  constructor() {
+    this.ready = new Promise<void>((resolve) => {
+      this._resolveReady = resolve;
+    });
+  }
+
+  /** Initialize the context and unblock waiting tools. */
+  initialize(ctx: ToolContext): void {
+    if (this._ctx) throw new Error("DeferredToolContext already initialized");
+    this._ctx = ctx;
+    this._resolveReady();
+  }
+
+  /** Get the initialized context. Throws if not yet initialized. */
+  get ctx(): ToolContext {
+    if (!this._ctx) throw new Error("knowledgebased is still initializing — try again shortly");
+    return this._ctx;
+  }
+
+  /** Signal that initialization has failed; unblock waiting tools with an error. */
+  failInit(err: Error): void {
+    this._error = err;
+    this._resolveReady();
+  }
+
+  /** Await initialization and return the ready context. */
+  async waitForInit(): Promise<ToolContext> {
+    await this.ready;
+    if (this._error) throw this._error;
+    return this.ctx;
+  }
+}
+
+export type ToolRegistrar = (server: McpServer, ctx: DeferredToolContext) => void;

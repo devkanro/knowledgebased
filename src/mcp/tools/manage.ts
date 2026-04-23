@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { MutationResult } from "../../types.js";
 import type { ToolRegistrar } from "./context.js";
 
-export const registerManageTools: ToolRegistrar = (server, ctx) => {
+export const registerManageTools: ToolRegistrar = (server, dctx) => {
   // ── add_knowledge ──────────────────────────────────────────────
   server.tool(
     "add_knowledge",
@@ -20,6 +20,7 @@ export const registerManageTools: ToolRegistrar = (server, ctx) => {
       source: z.string().optional().describe("Source of this knowledge (for frontmatter)"),
     },
     async ({ path, title, content, tags, related, refs, source }) => {
+      const ctx = await dctx.waitForInit();
       const result = ctx.store.add({ path, title, content, tags, related, refs, source });
       return text(formatMutation(result, "Created"));
     }
@@ -37,6 +38,7 @@ export const registerManageTools: ToolRegistrar = (server, ctx) => {
       refs: z.array(z.string()).optional().describe("New source code refs (replaces existing)"),
     },
     async ({ path, content, tags, related, refs }) => {
+      const ctx = await dctx.waitForInit();
       const result = ctx.store.update(path, { content, tags, related, refs });
       return text(formatMutation(result, "Updated"));
     }

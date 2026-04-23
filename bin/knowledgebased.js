@@ -5,14 +5,13 @@ const { runCli } = await import("../dist/cli/index.js");
 const handled = await runCli(process.argv[2], process.argv.slice(3));
 if (handled) process.exit(0);
 
-// Otherwise: discover all knowledge sources for the current cwd.
-const { discoverSources } = await import("../dist/discovery.js");
-const sources = discoverSources(process.cwd());
+// Parse --cwd override (highest priority for workspace resolution).
+const cwdIdx = process.argv.indexOf("--cwd");
+const cwdOverride = cwdIdx !== -1 && process.argv[cwdIdx + 1]
+  ? process.argv[cwdIdx + 1]
+  : undefined;
 
-if (sources.length === 0) {
-  process.exit(0);
-}
-
-// Normal MCP server mode — import heavy deps only now.
+// MCP server mode — discovery is deferred until after connection
+// so that MCP roots can provide the correct workspace directory.
 const { startServer } = await import("../dist/mcp/server.js");
-await startServer(sources);
+await startServer(cwdOverride);

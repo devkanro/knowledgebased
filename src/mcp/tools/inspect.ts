@@ -1,9 +1,10 @@
 import { validateRefs, validateRelated } from "../../core/validator.js";
 import type { ToolRegistrar } from "./context.js";
 
-export const registerInspectTools: ToolRegistrar = (server, ctx) => {
+export const registerInspectTools: ToolRegistrar = (server, dctx) => {
   // ── list_tags ──────────────────────────────────────────────────
   server.tool("list_tags", "List all available knowledge tags with fragment counts.", {}, async () => {
+    const ctx = await dctx.waitForInit();
     const tags = ctx.graph.listTags();
     if (tags.length === 0) {
       return text("No tags found. Knowledge directory may be empty.");
@@ -17,6 +18,7 @@ export const registerInspectTools: ToolRegistrar = (server, ctx) => {
 
   // ── audit_knowledge ────────────────────────────────────────────
   server.tool("audit_knowledge", "Validate all knowledge fragments for broken refs and related links.", {}, async () => {
+    const ctx = await dctx.waitForInit();
     ctx.graph.buildIndex();
     const issues: string[] = [];
     let brokenRefs = 0;

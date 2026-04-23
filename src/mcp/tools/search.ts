@@ -5,7 +5,7 @@ import type { FragmentResult } from "../../types.js";
 import { formatFull, writeQueryOutput } from "../format.js";
 import type { ToolRegistrar } from "./context.js";
 
-export const registerSearchTools: ToolRegistrar = (server, ctx) => {
+export const registerSearchTools: ToolRegistrar = (server, dctx) => {
   // ── search_knowledge ───────────────────────────────────────────
   server.tool(
     "search_knowledge",
@@ -24,6 +24,7 @@ export const registerSearchTools: ToolRegistrar = (server, ctx) => {
         .describe("'inline' returns results in response. 'file' writes to a temp file and returns the path."),
     },
     async ({ tags, hops, output }) => {
+      const ctx = await dctx.waitForInit();
       const results = ctx.graph.searchByTags(tags, hops);
       if (results.length === 0) {
         return text(`No fragments found for tags: ${tags.join(", ")}`);
@@ -71,6 +72,7 @@ export const registerSearchTools: ToolRegistrar = (server, ctx) => {
       output: z.enum(["inline", "file"]).optional().default("inline").describe("'inline' or 'file'"),
     },
     async ({ query, topK, threshold, output }) => {
+      const ctx = await dctx.waitForInit();
       try {
         const scored = await ctx.embeddings.search(query, topK, threshold);
         if (scored.length === 0) {

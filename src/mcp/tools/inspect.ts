@@ -74,18 +74,12 @@ export const registerInspectTools: ToolRegistrar = (server, dctx) => {
       rootsInfo = `MCP roots: error (${(e as Error).message})`;
     }
 
-    // Diagnostic: environment variables that might carry workspace info
-    const envKeys = [
-      "COPILOT_CWD", "COPILOT_WORKSPACE", "COPILOT_PROJECT_ROOT",
-      "INIT_CWD", "PWD", "HOME", "USERPROFILE",
-      "VSCODE_CWD", "WORKSPACE_FOLDER",
-    ];
-    const envLines = envKeys
-      .filter(k => process.env[k])
-      .map(k => `  ${k}=${process.env[k]}`);
-    const envInfo = envLines.length > 0
-      ? `Env:\n${envLines.join("\n")}`
-      : "Env: (no workspace-related vars found)";
+    // Diagnostic: all environment variables
+    const envLines = Object.entries(process.env)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `  ${k}=${v}`);
+    const envInfo = `Env (${envLines.length} vars):\n${envLines.join("\n")}`;
 
     const header = [
       `startDir: ${ctx.outputRoot}`,

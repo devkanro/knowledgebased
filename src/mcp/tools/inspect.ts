@@ -62,7 +62,37 @@ export const registerInspectTools: ToolRegistrar = (server, dctx) => {
     const ctx = await dctx.waitForInit();
     const sources = ctx.graph.sources;
 
-    const header = `startDir: ${ctx.outputRoot}\nprocess.cwd(): ${process.cwd()}`;
+    // Diagnostic: MCP roots
+    let rootsInfo = "MCP roots: (not queried)";
+    try {
+      const rootsResult = await server.server.listRoots();
+      const roots = rootsResult?.roots;
+      rootsInfo = roots && roots.length > 0
+        ? `MCP roots: ${roots.map(r => r.uri).join(", ")}`
+        : "MCP roots: [] (empty)";
+    } catch (e) {
+      rootsInfo = `MCP roots: error (${(e as Error).message})`;
+    }
+
+    // Diagnostic: environment variables that might carry workspace info
+    const envKeys = [
+      "COPILOT_CWD", "COPILOT_WORKSPACE", "COPILOT_PROJECT_ROOT",
+      "INIT_CWD", "PWD", "HOME", "USERPROFILE",
+      "VSCODE_CWD", "WORKSPACE_FOLDER",
+    ];
+    const envLines = envKeys
+      .filter(k => process.env[k])
+      .map(k => `  ${k}=${process.env[k]}`);
+    const envInfo = envLines.length > 0
+      ? `Env:\n${envLines.join("\n")}`
+      : "Env: (no workspace-related vars found)";
+
+    const header = [
+      `startDir: ${ctx.outputRoot}`,
+      `process.cwd(): ${process.cwd()}`,
+      rootsInfo,
+      envInfo,
+    ].join("\n");
 
     if (sources.length === 0) {
       return text(`${header}\n\nNo knowledge sources loaded.`);

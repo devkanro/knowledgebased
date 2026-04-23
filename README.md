@@ -149,10 +149,12 @@ Content goes here...
 | `search_knowledge` | Tag-based search with graph traversal |
 | `search_semantic` | Embedding-based semantic search |
 | `list_tags` | List all tags with counts |
+| `list_sources` | List loaded knowledge sources |
 | `add_knowledge` | Create a new fragment |
 | `update_knowledge` | Update an existing fragment |
-| `deprecate_knowledge` | Mark a fragment as deprecated |
+| `delete_knowledge` | Delete a fragment permanently |
 | `audit_knowledge` | Validate refs and related links |
+| `reload_sources` | Re-discover sources from config |
 
 ## CLI Commands
 

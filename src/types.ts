@@ -80,6 +80,7 @@ export interface AddFragmentInput {
 }
 
 export interface UpdateFragmentInput {
+  title?: string;
   content?: string;
   tags?: string[];
   related?: string[];

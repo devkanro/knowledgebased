@@ -48,6 +48,11 @@ export class DeferredToolContext {
     this._resolveReady();
   }
 
+  /** Replace the context after a reload. */
+  update(ctx: ToolContext): void {
+    this._ctx = ctx;
+  }
+
   /** Await initialization and return the ready context. */
   async waitForInit(): Promise<ToolContext> {
     await this.ready;

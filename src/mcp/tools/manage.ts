@@ -32,15 +32,29 @@ export const registerManageTools: ToolRegistrar = (server, dctx) => {
     "Update an existing knowledge fragment's content, tags, or related links.",
     {
       path: z.string().describe("Fragment path (e.g. 'workflow/git.md' or 'personal@workflow/git.md')"),
+      title: z.string().optional().describe("New title (replaces H1 in content)"),
       content: z.string().optional().describe("New content (replaces existing)"),
       tags: z.array(z.string()).optional().describe("New tags (replaces existing)"),
       related: z.array(z.string()).optional().describe("New related links (same source only, replaces existing)"),
       refs: z.array(z.string()).optional().describe("New source code refs (replaces existing)"),
     },
-    async ({ path, content, tags, related, refs }) => {
+    async ({ path, title, content, tags, related, refs }) => {
       const ctx = await dctx.waitForInit();
-      const result = ctx.store.update(path, { content, tags, related, refs });
+      const result = ctx.store.update(path, { title, content, tags, related, refs });
       return text(formatMutation(result, "Updated"));
+    }
+  );
+  // ── delete_knowledge ─────────────────────────────────────────
+  server.tool(
+    "delete_knowledge",
+    "Delete a knowledge fragment permanently.",
+    {
+      path: z.string().describe("Fragment path (e.g. 'workflow/git' or 'personal@workflow/git')"),
+    },
+    async ({ path }) => {
+      const ctx = await dctx.waitForInit();
+      const result = ctx.store.delete(path);
+      return text(formatMutation(result, "Deleted"));
     }
   );
 };

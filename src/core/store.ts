@@ -1,5 +1,5 @@
 import matter from "gray-matter";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 
 import type { AddFragmentInput, MutationResult, UpdateFragmentInput } from "../types.js";
@@ -71,7 +71,15 @@ export class FragmentStore {
     if (updates.related !== undefined) parsed.data.related = updates.related;
     if (updates.refs !== undefined) parsed.data.refs = updates.refs;
 
-    const body = updates.content !== undefined ? updates.content : parsed.content;
+    let body = updates.content !== undefined ? updates.content : parsed.content;
+    if (updates.title !== undefined) {
+      const h1Regex = /^#\s+.+$/m;
+      if (h1Regex.test(body)) {
+        body = body.replace(h1Regex, `# ${updates.title}`);
+      } else {
+        body = `# ${updates.title}\n\n${body}`;
+      }
+    }
     const fileContent = matter.stringify(body, parsed.data);
     writeFileSync(filePath, fileContent, "utf-8");
     this.graph.buildIndex();
@@ -85,6 +93,27 @@ export class FragmentStore {
         : []),
     ];
     return { success: true, path: qualifiedPath, warnings };
+  }
+
+  delete(path: string): MutationResult {
+    const { alias, relPath } = parsePath(path);
+    const resolvedSource = this.graph.sourceByAlias(alias);
+    if (!resolvedSource) {
+      return { success: false, error: `Unknown or unlinked source: "${alias}"` };
+    }
+
+    const normalizedRel = relPath.endsWith(".md") ? relPath : relPath + ".md";
+    const qualifiedPath = qualifyPath(alias, normalizedRel);
+    const filePath = join(resolvedSource.knowledgeDir, normalizedRel);
+
+    try {
+      unlinkSync(filePath);
+    } catch {
+      return { success: false, error: `Fragment not found at ${qualifiedPath}` };
+    }
+
+    this.graph.buildIndex();
+    return { success: true, path: qualifiedPath };
   }
 
 }

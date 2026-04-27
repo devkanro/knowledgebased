@@ -23,7 +23,7 @@ git push --follow-tags
 The `publish.yml` workflow:
 1. `npm ci` — clean install
 2. `npm run build` — TypeScript compilation
-3. `npm test` — run all 65 tests
+3. `npm test` — run all tests
 4. `npm publish --provenance --access public` — publish with OIDC (Trusted Publishing)
 
 ## Trusted Publishing (OIDC)

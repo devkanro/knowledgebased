@@ -20,5 +20,6 @@ Domain logic with no MCP awareness. Read/write split:
 
 ## MCP Layer (`src/mcp/`)
 - `server.ts` — wires sources → graph → store → engine → MCP tools.
-- Tools grouped by action: `search.ts`, `manage.ts`, `inspect.ts`.
+- Tools grouped by action: `search.ts`, `manage.ts`, `inspect.ts`, `rag.ts`.
+- `sampling.ts` — MCP client sampling helper for RAG summarization.
 - `ToolContext` DI pattern passes shared deps to each tool registrar.

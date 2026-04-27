@@ -16,6 +16,11 @@ export const DEFAULT_RAG_THRESHOLD = 0.80;
 export const DEFAULT_RAG_DIRECT_THRESHOLD = 0.85;
 export const DEFAULT_RAG_SUMMARY_MAX_TOKENS = 500;
 
+// ─── BM25 / hybrid search ───────────────────────────────────────
+export const DEFAULT_BM25_K1 = 1.2;
+export const DEFAULT_BM25_B = 0.75;
+export const DEFAULT_HYBRID_ALPHA = 0.7;
+
 // ─── Server identity ─────────────────────────────────────────────
 export const SERVER_NAME = "knowledgebased";
 export const SERVER_VERSION = "0.5.1";

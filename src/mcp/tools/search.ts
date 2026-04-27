@@ -84,8 +84,8 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
           return text(`No semantically similar fragments found for: ${query}`);
         }
 
-        // Build a score lookup for the references table
-        const scoreMap = new Map(scored.map((s) => [s.path, s.score]));
+        // Build score lookups for the references table
+        const hitMap = new Map(scored.map((s) => [s.path, s]));
 
         const results: FragmentResult[] = scored
           .map((s) => {
@@ -104,12 +104,18 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
           .filter((r): r is FragmentResult => r !== null);
 
         const refLines = results.map(
-          (r) => `| ${r.path} | ${(scoreMap.get(r.path) ?? 0).toFixed(3)} | ${r.source} |`
+          (r) => {
+            const hit = hitMap.get(r.path);
+            const score = hit?.score ?? 0;
+            const cosine = hit?.cosine ?? 0;
+            const bm25 = hit?.bm25 ?? 0;
+            return `| ${r.path} | ${score.toFixed(3)} | ${cosine.toFixed(3)} | ${bm25.toFixed(1)} | ${r.source} |`;
+          }
         );
         const refsTable = [
           "## References\n",
-          "| Fragment | Score | Source |",
-          "|----------|-------|--------|",
+          "| Fragment | Score | Cosine | BM25 | Source |",
+          "|----------|-------|--------|------|--------|",
           ...refLines,
         ].join("\n");
 

@@ -98,7 +98,12 @@ export interface MutationResult {
 
 export interface SemanticHit {
   path: string;
+  /** Final hybrid score (α × cosine_norm + (1-α) × bm25_norm). */
   score: number;
+  /** Raw cosine similarity before normalization. */
+  cosine: number;
+  /** Raw BM25 score before normalization. */
+  bm25: number;
 }
 
 export interface EmbeddingCacheEntry {

@@ -17,6 +17,8 @@ interface Reference {
   path: string;
   title: string;
   score: number | null;
+  cosine: number | null;
+  bm25: number | null;
   tier: Tier;
   reason: string;
   refs: string[];
@@ -81,8 +83,8 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
         return text(`No fragments found for: ${query}`);
       }
 
-      // Build a score lookup
-      const scoreMap = new Map(scored.map((s) => [s.path, s.score]));
+      // Build a hit lookup
+      const hitMap = new Map(scored.map((s) => [s.path, s]));
 
       // ── 2. Split into tiers ────────────────────────────────────────
       const directHits = scored.filter((s) => s.score >= directThreshold);
@@ -146,7 +148,8 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
           expandedCount > 0
             ? `Score ≥ ${directThreshold}, expanded ${expandedCount} related`
             : `Score ≥ ${directThreshold}`;
-        refs.push({ path: f.path, title: f.title, score: scoreMap.get(f.path) ?? null, tier: "direct", reason, refs: f.refs });
+        const hit = hitMap.get(f.path);
+        refs.push({ path: f.path, title: f.title, score: hit?.score ?? null, cosine: hit?.cosine ?? null, bm25: hit?.bm25 ?? null, tier: "direct", reason, refs: f.refs });
       }
 
       // ── 6. Sampling / fallback ────────────────────────────────────
@@ -176,10 +179,13 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
 
       // ── 7. Finalize non-direct references (after sampling outcome) ─
       for (const f of summaryFragments) {
+        const hit = hitMap.get(f.path);
         refs.push({
           path: f.path,
           title: f.title,
-          score: scoreMap.get(f.path) ?? null,
+          score: hit?.score ?? null,
+          cosine: hit?.cosine ?? null,
+          bm25: hit?.bm25 ?? null,
           tier: samplingSucceeded ? "summarized" : "metadata-only",
           reason: samplingSucceeded
             ? `Score ${threshold}–${directThreshold}, included in summary`
@@ -191,6 +197,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
       for (const p of relatedPaths) {
         const frag = ctx.graph.fragments.get(p);
         const fragTitle = frag?.title ?? p;
+        const hit = hitMap.get(p);
         let linkedFrom = "";
         for (const dp of directPaths) {
           if (ctx.graph.graphIndex.get(dp)?.has(p)) {
@@ -201,7 +208,9 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
         refs.push({
           path: p,
           title: fragTitle,
-          score: scoreMap.get(p) ?? null,
+          score: hit?.score ?? null,
+          cosine: hit?.cosine ?? null,
+          bm25: hit?.bm25 ?? null,
           tier: samplingSucceeded ? "related" : "metadata-only",
           reason: samplingSucceeded
             ? `Related to ${linkedFrom}, included in summary`
@@ -214,13 +223,16 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
       const refLines = refs.map(
         (r) => {
           const refsStr = r.refs.length > 0 ? r.refs.join(", ") : "—";
-          return `| ${r.path} | ${r.title} | ${r.score !== null ? r.score.toFixed(3) : "—"} | ${r.tier} | ${refsStr} | ${r.reason} |`;
+          const score = r.score !== null ? r.score.toFixed(3) : "—";
+          const cosine = r.cosine !== null ? r.cosine.toFixed(3) : "—";
+          const bm25 = r.bm25 !== null ? r.bm25.toFixed(1) : "—";
+          return `| ${r.path} | ${r.title} | ${score} | ${cosine} | ${bm25} | ${r.tier} | ${refsStr} | ${r.reason} |`;
         }
       );
       const refsTable = [
         "## References\n",
-        "| Fragment | Title | Score | Tier | Refs | Reason |",
-        "|----------|-------|-------|------|------|--------|",
+        "| Fragment | Title | Score | Cosine | BM25 | Tier | Refs | Reason |",
+        "|----------|-------|-------|--------|------|------|------|--------|",
         ...refLines,
       ].join("\n");
 

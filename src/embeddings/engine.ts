@@ -174,7 +174,12 @@ export class EmbeddingEngine {
       const cs = cosineNorm.get(path) ?? 0;
       const bs = bm25Norm.get(path) ?? 0;
       const hybrid = alpha * cs + (1 - alpha) * bs;
-      all.push({ path, score: hybrid });
+      all.push({
+        path,
+        score: hybrid,
+        cosine: cosineScores.get(path) ?? 0,
+        bm25: bm25Scores.get(path) ?? 0,
+      });
     }
 
     all.sort((a, b) => b.score - a.score);

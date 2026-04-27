@@ -13,9 +13,9 @@ Results are classified by similarity score into three tiers:
 
 | Tier | Score | Behavior |
 |------|-------|----------|
-| **direct** | ≥ `directThreshold` (default 0.9) | Full content returned verbatim |
+| **direct** | ≥ `directThreshold` (default 0.85) | Full content returned verbatim |
 | **related** | One-hop `graphIndex` neighbors of direct hits | Fed into LLM summary |
-| **summarized** | ≥ `threshold` (default 0.85), < `directThreshold` | Fed into LLM summary |
+| **summarized** | ≥ `threshold` (default 0.80), < `directThreshold` | Fed into LLM summary |
 
 Only direct-tier fragments get full content. Related and summarized fragments are batched and sent to the client LLM via `sampling/createMessage` for a query-aware synthesis.
 

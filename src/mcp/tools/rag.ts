@@ -19,6 +19,7 @@ interface Reference {
   score: number | null;
   tier: Tier;
   reason: string;
+  refs: string[];
 }
 
 export const registerRagTools: ToolRegistrar = (server, dctx) => {
@@ -145,7 +146,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
           expandedCount > 0
             ? `Score ≥ ${directThreshold}, expanded ${expandedCount} related`
             : `Score ≥ ${directThreshold}`;
-        refs.push({ path: f.path, title: f.title, score: scoreMap.get(f.path) ?? null, tier: "direct", reason });
+        refs.push({ path: f.path, title: f.title, score: scoreMap.get(f.path) ?? null, tier: "direct", reason, refs: f.refs });
       }
 
       // ── 6. Sampling / fallback ────────────────────────────────────
@@ -183,6 +184,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
           reason: samplingSucceeded
             ? `Score ${threshold}–${directThreshold}, included in summary`
             : `Score ${threshold}–${directThreshold}, sampling unavailable`,
+          refs: f.refs,
         });
       }
 
@@ -204,18 +206,21 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
           reason: samplingSucceeded
             ? `Related to ${linkedFrom}, included in summary`
             : `Related to ${linkedFrom}, sampling unavailable`,
+          refs: frag?.refs ?? [],
         });
       }
 
       // ── 8. Compose final response ─────────────────────────────────
       const refLines = refs.map(
-        (r) =>
-          `| ${r.path} | ${r.title} | ${r.score !== null ? r.score.toFixed(3) : "—"} | ${r.tier} | ${r.reason} |`
+        (r) => {
+          const refsStr = r.refs.length > 0 ? r.refs.join(", ") : "—";
+          return `| ${r.path} | ${r.title} | ${r.score !== null ? r.score.toFixed(3) : "—"} | ${r.tier} | ${refsStr} | ${r.reason} |`;
+        }
       );
       const refsTable = [
         "## References\n",
-        "| Fragment | Title | Score | Tier | Reason |",
-        "|----------|-------|-------|------|--------|",
+        "| Fragment | Title | Score | Tier | Refs | Reason |",
+        "|----------|-------|-------|------|------|--------|",
         ...refLines,
       ].join("\n");
 

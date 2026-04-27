@@ -191,9 +191,9 @@ User question
 
 | Tier | Score | Behavior |
 |------|-------|----------|
-| **direct** | ≥ `directThreshold` (0.9) | Full content returned verbatim |
+| **direct** | ≥ `directThreshold` (0.85) | Full content returned verbatim |
 | **related** | One-hop graph neighbors of direct hits | Summarized via LLM sampling |
-| **summarized** | ≥ `threshold` (0.85), < `directThreshold` | Summarized via LLM sampling |
+| **summarized** | ≥ `threshold` (0.80), < `directThreshold` | Summarized via LLM sampling |
 
 Every response includes a **references table** listing all used fragments with their similarity score, tier, and reason for inclusion.
 
@@ -204,8 +204,8 @@ When the MCP client doesn't support sampling, summarized/related fragments fall 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `query` | — | Natural language search query |
-| `threshold` | 0.85 | Minimum similarity score for inclusion |
-| `directThreshold` | 0.9 | Score above which fragments are returned verbatim |
+| `threshold` | 0.80 | Minimum similarity score for inclusion |
+| `directThreshold` | 0.85 | Score above which fragments are returned verbatim |
 | `maxTokens` | 500 | Max tokens for the LLM summary |
 
 ## CLI Commands

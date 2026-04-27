@@ -12,8 +12,8 @@ export const DEFAULT_SEMANTIC_THRESHOLD = 0.85;
 export const DEFAULT_TAG_HOPS = 1;
 
 // ─── RAG search defaults ────────────────────────────────────────
-export const DEFAULT_RAG_THRESHOLD = 0.85;
-export const DEFAULT_RAG_DIRECT_THRESHOLD = 0.9;
+export const DEFAULT_RAG_THRESHOLD = 0.80;
+export const DEFAULT_RAG_DIRECT_THRESHOLD = 0.85;
 export const DEFAULT_RAG_SUMMARY_MAX_TOKENS = 500;
 
 // ─── Server identity ─────────────────────────────────────────────

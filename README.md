@@ -45,127 +45,61 @@ Add to your `.mcp.json` / client config:
 
 ## Knowledge Discovery
 
-The server discovers knowledge from two independent phases, then **unions** all results:
+The server discovers knowledge from two independent phases, then **unions** all results.
+
+Given `cwd = ~/workspace/my-project/`, here is every location the server checks:
 
 ```
-discoverSources(cwd)
+~/
+├── .knowledgebased.json                  ← Phase 2: user-global config (always read)
+├── notes/                                ← Phase 2: external KB (declared in bases)
+│   └── *.md
 │
-├── Phase 1: Project source (walk up from cwd)
-│   │
-│   │  For each ancestor directory, try in order (first match wins):
-│   │
-│   ├── .knowledge.json          ← explicit config pointer (highest priority)
-│   ├── knowledge/               ← co-located, visible (most common)
-│   ├── .knowledge/              ← co-located, hidden
-│   └── <parent>/<name>.knowledge/  ← sibling folder
-│
-│   Result: 0 or 1 project source (alias: "repo", refs validated against cwd)
-│
-├── Phase 2: External sources (~/.knowledgebased.json)
-│   │
-│   │  Always runs (even if Phase 1 found something).
-│   │  Matches cwd against `repos` entries:
-│   │
-│   ├── repos["*"]               ← wildcard, always included
-│   └── repos["/path/to/repo"]   ← longest-prefix match against cwd
-│
-│   Result: 0–N external sources (alias: base ID, refs unscoped)
-│
-└── Union + dedupe by canonical knowledgeDir hash
-    └── Final: ResolvedSource[]
+└── workspace/
+    ├── my-project.knowledge/             ← Phase 1 ④: sibling folder
+    │   └── *.md
+    │
+    └── my-project/                       ← cwd
+        ├── .knowledge.json               ← Phase 1 ①: config pointer (highest pri)
+        ├── knowledge/                    ← Phase 1 ②: co-located, visible
+        │   └── *.md
+        ├── .knowledge/                   ← Phase 1 ③: co-located, hidden
+        │   └── *.md
+        └── src/
 ```
 
 ### Phase 1 — project source
 
-The walk-up tries four patterns at each ancestor directory. The **first match stops the walk entirely**:
+Walks up from cwd. At **each** ancestor directory, tries four patterns in order — **first match stops the entire walk**:
 
 | Priority | Pattern | Use case |
 |----------|---------|----------|
-| 1 | `.knowledge.json` | Knowledge lives elsewhere; config points to it |
-| 2 | `knowledge/` | Default — co-located and visible |
-| 3 | `.knowledge/` | Hidden from `ls` |
-| 4 | `../<project>.knowledge/` | Sibling folder — project repo stays unmodified |
+| ① | `.knowledge.json` | Knowledge lives elsewhere; config points to it |
+| ② | `knowledge/` | Default — co-located and visible (most common) |
+| ③ | `.knowledge/` | Hidden from `ls` |
+| ④ | `../<project>.knowledge/` | Sibling folder — project repo stays unmodified |
+
+Result: 0 or 1 **project source** (alias: `repo`, refs validated against cwd).
 
 ### Phase 2 — external knowledge bases
 
-`~/.knowledgebased.json` defines named knowledge bases and binds them to repos:
+Always runs (even if Phase 1 found a project source). Reads `~/.knowledgebased.json` and matches cwd against `repos` entries.
+
+Result: 0–N **external sources** (alias: base ID, refs unscoped). Both phases are unioned and deduped by canonical directory hash.
+
+### User-global config (`~/.knowledgebased.json`)
+
+Defines named knowledge bases and binds them to repos:
 
 ```json
 {
   "bases": {
     "personal": "~/notes",
-    "team-conventions": { "knowledge": "~/team/conventions", "cacheDir": "~/.cache/team" }
+    "team": { "knowledge": "~/team/conventions", "cacheDir": "~/.cache/team" }
   },
   "repos": {
     "*": ["personal"],
-    "~/source/my-project": ["team-conventions"]
-  }
-}
-```
-
-How matching works:
-- **`"*"` (wildcard)** — these bases are active in **every** project
-- **Path entries** — matched via **longest-prefix** against cwd (segment-boundary, case-insensitive on Windows)
-- Both wildcard and path matches are unioned together
-
-In the example above:
-- `personal` is available everywhere (wildcard `"*"`)
-- `team-conventions` is only available when cwd is inside `~/source/my-project`
-- Fragments from external sources are prefixed with their alias: `personal@notes/foo.md`
-
-### Example layouts
-
-```
-# ① Co-located (default, most common)
-my-project/
-├── knowledge/           ← Phase 1 discovers this
-│   └── workflow/
-│       └── git.md
-└── src/
-
-# ② Hidden co-located
-my-project/
-├── .knowledge/          ← Phase 1 discovers this
-└── src/
-
-# ③ Sibling folder (project repo stays clean)
-workspace/
-├── my-project/          ← cwd
-│   └── src/
-└── my-project.knowledge/  ← Phase 1 discovers this
-    └── ...
-
-# ④ Pointer config (knowledge lives anywhere)
-my-project/
-├── .knowledge.json      ← { "knowledge": "/shared/team-kb" }
-└── src/
-
-# ⑤ Project + personal overlay (Phase 1 + Phase 2 combined)
-my-project/
-├── knowledge/           ← Phase 1: project source (alias: "repo")
-└── src/
-~/.knowledgebased.json   ← Phase 2: adds personal KB (alias: "personal")
-~/notes/                 ← external KB directory
-```
-
-### Config schemas
-
-**`.knowledge.json`** (per-project, Phase 1):
-
-```json
-{ "knowledge": "./knowledge", "cacheDir": "./.cache/embeddings" }
-```
-
-**`~/.knowledgebased.json`** (user-global, Phase 2):
-
-```json
-{
-  "bases": {
-    "<id>": "<path>"
-  },
-  "repos": {
-    "*": ["<id>"],
-    "/path/to/repo": ["<id>"]
+    "~/workspace/my-project": ["team"]
   }
 }
 ```
@@ -173,12 +107,33 @@ my-project/
 | Field | Description |
 |-------|-------------|
 | `bases.<id>` | A string path (shorthand) or `{ "knowledge": "...", "cacheDir": "..." }`. Paths support `~` expansion. |
-| `repos.<path>` | Array of base IDs to activate when cwd matches this path prefix. `"*"` = always active. |
+| `repos."*"` | Wildcard — these bases are active in **every** project. |
+| `repos.<path>` | Array of base IDs to activate when cwd is inside this path. **Longest-prefix match** wins (segment-boundary, case-insensitive on Windows). |
 
-**Validation rules** (fail loudly at startup):
-- `repos` references a non-existent base ID → error
-- Base ID is `"*"`, or contains `@`, `/`, or spaces → error
-- Two bases resolve to the same directory → error
+In the example above:
+- `personal` is available everywhere (wildcard `"*"`)
+- `team` is only available when working inside `~/workspace/my-project`
+- Fragments from external sources are prefixed with their alias: `personal@notes/foo.md`
+
+### Per-project config (`.knowledge.json`)
+
+Points to a knowledge directory that lives elsewhere:
+
+```json
+{ "knowledge": "../shared-kb", "cacheDir": "./.cache/embeddings" }
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `knowledge` | optional | Path to the knowledge directory. Resolved relative to the config file. Defaults to `./knowledge`. |
+| `cacheDir` | optional | Override for the embedding cache. Defaults to `~/.cache/knowledgebased/<hash>`. |
+
+### Validation rules
+
+These conditions cause a **loud startup error**:
+- `repos` references a non-existent base ID
+- Base ID is `"*"`, or contains `@`, `/`, or spaces
+- Two bases resolve to the same canonical directory
 
 ## Knowledge Fragments
 

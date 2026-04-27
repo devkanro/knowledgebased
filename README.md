@@ -79,7 +79,7 @@ Walks up from cwd. At **each** ancestor directory, tries four patterns in order 
 | ③ | `.knowledge/` | ✅ | ❌ (too generic) |
 | ④ | `../<project>.knowledge/` | ✅ | ✅ (explicit naming) |
 
-Beyond the git root, only explicitly-intentioned patterns (① config pointer and ④ sibling) are checked. This prevents accidental matches with unrelated `knowledge/` directories in parent directories. If no git root is found, all patterns are tried at every level.
+Beyond the git root, only explicitly-intentioned patterns (① config pointer and ④ sibling) are checked. If **no git root is found at all**, generic patterns are never used — only ① and ④ apply. This prevents accidental matches with unrelated `knowledge/` directories outside a project context.
 
 Result: 0 or 1 **project source** (alias: `repo`, refs validated against cwd).
 

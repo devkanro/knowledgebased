@@ -22,11 +22,12 @@ export interface Fixture {
   cleanup(): void;
 }
 
-export function makeFixture(opts: { withKnowledgeDir?: boolean } = {}): Fixture {
-  const { withKnowledgeDir = true } = opts;
+export function makeFixture(opts: { withKnowledgeDir?: boolean; withGit?: boolean } = {}): Fixture {
+  const { withKnowledgeDir = true, withGit = true } = opts;
   const root = mkdtempSync(join(tmpdir(), "knowledge-mcp-test-"));
   const knowledgeDir = join(root, "knowledge");
   if (withKnowledgeDir) mkdirSync(knowledgeDir, { recursive: true });
+  if (withGit) mkdirSync(join(root, ".git"), { recursive: true });
 
   return {
     root,

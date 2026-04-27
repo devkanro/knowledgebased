@@ -271,20 +271,37 @@ test("discoverKnowledge: knowledge/ inside git root still works", () => {
   }
 });
 
-test("discoverKnowledge: no git root — all patterns work everywhere (fallback)", () => {
-  const fx = makeFixture({ withKnowledgeDir: false });
+test("discoverKnowledge: no git root — knowledge/ is NOT matched (too generic)", () => {
+  const fx = makeFixture({ withKnowledgeDir: false, withGit: false });
   try {
     // No .git anywhere in fixture
     const childDir = join(fx.root, "deep", "nested");
     mkdirSync(childDir, { recursive: true });
 
-    // Place knowledge/ at fx.root level
+    // Place knowledge/ at fx.root level — should be ignored without git root
     const kb = join(fx.root, "knowledge");
     mkdirSync(kb, { recursive: true });
 
     const result = discoverKnowledge(childDir, NO_GLOBAL);
+    if (result) {
+      assert.notEqual(result.knowledgeDir, kb, "knowledge/ should not be found without git root");
+    }
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: no git root — sibling pattern still works", () => {
+  const fx = makeFixture({ withKnowledgeDir: false, withGit: false });
+  try {
+    const projectDir = join(fx.root, "my-project");
+    const siblingKb = join(fx.root, "my-project.knowledge");
+    mkdirSync(projectDir, { recursive: true });
+    mkdirSync(siblingKb, { recursive: true });
+
+    const result = discoverKnowledge(projectDir, NO_GLOBAL);
     assert.ok(result);
-    assert.equal(result.knowledgeDir, kb);
+    assert.equal(result.knowledgeDir, siblingKb);
   } finally {
     fx.cleanup();
   }

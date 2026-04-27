@@ -78,27 +78,30 @@ export function discoverKnowledge(
  * Walk up from `startDir` looking for a project-level knowledge source.
  * At each ancestor, try (in priority order):
  *   1. `.knowledge.json`    — always checked (explicit intent)
- *   2. `knowledge/`         — only within git root (or if no git root found)
- *   3. `.knowledge/`        — only within git root (or if no git root found)
+ *   2. `knowledge/`         — only within git root
+ *   3. `.knowledge/`        — only within git root
  *   4. sibling `<basename>.knowledge/` — always checked (explicit naming)
  *
- * Beyond the git root boundary, only patterns ① and ④ are tried,
- * since `knowledge/` and `.knowledge/` are too generic to match
- * outside the project tree. If no git root is found, all patterns
- * are tried at every level (fallback for non-git directories).
+ * The generic patterns ② and ③ require a git root to exist:
+ * - Within the git root, they are checked normally
+ * - Beyond the git root, they are skipped
+ * - If no git root is found at all, they are never checked
+ *
+ * This prevents accidental matches with unrelated `knowledge/`
+ * directories outside a project context.
  */
 function discoverProjectSource(startDir: string): DiscoveredSource | null {
   let current = resolve(startDir);
   const gitRoot = findGitRoot(current);
 
   while (true) {
-    // Beyond git root: only try explicit patterns (config + sibling)
-    const beyondGitRoot = gitRoot !== null && !isPathPrefixOrEqual(gitRoot, current);
+    // Generic patterns only allowed within a known git root
+    const allowGeneric = gitRoot !== null && isPathPrefixOrEqual(gitRoot, current);
 
     const found =
       tryConfigFile(join(current, PROJECT_CONFIG_FILE), current) ??
-      (beyondGitRoot ? null : tryDirectory(join(current, "knowledge"))) ??
-      (beyondGitRoot ? null : tryDirectory(join(current, ".knowledge"))) ??
+      (allowGeneric ? tryDirectory(join(current, "knowledge")) : null) ??
+      (allowGeneric ? tryDirectory(join(current, ".knowledge")) : null) ??
       trySiblingSuffix(current);
 
     if (found) return found;

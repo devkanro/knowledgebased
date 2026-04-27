@@ -36,11 +36,19 @@ When sampling is unavailable (client doesn't support it, or `createMessage` fail
 
 ## Response Structure
 
-1. **References table** — all used fragments with score, tier, and reason
+1. **References table** — all used fragments with path, title, score, tier, and reason
 2. **Direct Results** — full content of high-confidence hits
 3. **Summary** — LLM-generated synthesis (or metadata fallback)
+4. **Compression warning** — shown when many fragments are compressed into few tokens, suggesting `search_knowledge` for full content
 
 ## Validation
 
 - `directThreshold` must be greater than `threshold` (error returned otherwise)
 - Below-threshold fallback results from the embedding engine are filtered out
+
+## Tool Selection Guidance
+
+- Use `search_rag` when answering user questions — delivers concise, ready-to-use answers
+- Prefer `search_semantic` for exploring what the knowledge base covers
+- Prefer `search_knowledge` when you need full unabridged content for specific tags
+- If `search_rag` summary is missing key details, follow up with `search_knowledge` using tags from the references table

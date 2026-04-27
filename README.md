@@ -169,6 +169,22 @@ Content goes here...
 | `audit_knowledge` | Validate refs and related links |
 | `reload_sources` | Re-discover sources from config |
 
+### Which search tool to use?
+
+```
+User question
+│
+├─ "What topics does the KB cover?" → search_semantic (explore)
+│     Low threshold, scan fragment titles and scores.
+│
+├─ "How does X work?" → search_rag (answer)
+│     Returns concise summary + references.
+│     If key details are missing, follow up with search_knowledge.
+│
+└─ "Give me everything about Y" → search_knowledge (enumerate)
+      tags=["Y"], returns full unabridged content.
+```
+
 ### search_rag — RAG-style search
 
 `search_rag` combines semantic search with MCP client [sampling](https://modelcontextprotocol.io/specification/2025-03-26/server/sampling) to deliver concise, query-aware results. Results are split into tiers:

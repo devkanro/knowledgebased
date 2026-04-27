@@ -79,6 +79,9 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
           return text(`No semantically similar fragments found for: ${query}`);
         }
 
+        // Build a score lookup for the references table
+        const scoreMap = new Map(scored.map((s) => [s.path, s.score]));
+
         const results: FragmentResult[] = scored
           .map((s) => {
             const f = ctx.graph.fragments.get(s.path);
@@ -95,16 +98,26 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
           })
           .filter((r): r is FragmentResult => r !== null);
 
+        const refLines = results.map(
+          (r) => `| ${r.path} | ${(scoreMap.get(r.path) ?? 0).toFixed(3)} | ${r.source} |`
+        );
+        const refsTable = [
+          "## References\n",
+          "| Fragment | Score | Source |",
+          "|----------|-------|--------|",
+          ...refLines,
+        ].join("\n");
+
         if (output === "file") {
           const filePath = writeQueryOutput(
             ctx.outputRoot,
             results,
-            (res) => `# Semantic Search: ${query}\n\nFound ${res.length} fragments.\n\n${formatFull(res)}`
+            (res) => `# Semantic Search: ${query}\n\n${refsTable}\n\n${formatFull(res)}`
           );
           return text(summary(filePath, results));
         }
 
-        return text(`Found ${results.length} semantically similar fragments:\n\n${formatFull(results)}`);
+        return text(`${refsTable}\n\n${formatFull(results)}`);
       } catch (e) {
         return text(
           `Semantic search unavailable: ${(e as Error).message}. Embedding engine may still be initializing.`

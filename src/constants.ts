@@ -18,7 +18,7 @@ export const DEFAULT_RAG_SUMMARY_MAX_TOKENS = 500;
 
 // ─── Server identity ─────────────────────────────────────────────
 export const SERVER_NAME = "knowledgebased";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.4.0";
 export const REPO_SOURCE_ALIAS = "repo";
 
 // ─── Paths ───────────────────────────────────────────────────────

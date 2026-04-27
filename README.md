@@ -7,6 +7,7 @@ Written in TypeScript. Uses local sentence-transformer embeddings (`Xenova/multi
 ## Features
 
 - 🔍 **Semantic search** — embedding-based natural language queries (multilingual)
+- 🤖 **RAG search** — tiered results with automatic LLM summarization via MCP sampling
 - 🏷️ **Tag search with graph traversal** — follow `related:` links across fragments
 - 📝 **Markdown fragments with YAML frontmatter** — human-readable, git-friendly
 - 🚀 **Zero overhead when unused** — exits silently if no knowledge is present
@@ -147,7 +148,8 @@ Content goes here...
 | Tool | Description |
 |------|-------------|
 | `search_knowledge` | Tag-based search with graph traversal |
-| `search_semantic` | Embedding-based semantic search |
+| `search_semantic` | Embedding-based semantic search with similarity scores |
+| `search_rag` | Semantic search with automatic LLM summarization via MCP sampling |
 | `list_tags` | List all tags with counts |
 | `list_sources` | List loaded knowledge sources |
 | `add_knowledge` | Create a new fragment |
@@ -155,6 +157,29 @@ Content goes here...
 | `delete_knowledge` | Delete a fragment permanently |
 | `audit_knowledge` | Validate refs and related links |
 | `reload_sources` | Re-discover sources from config |
+
+### search_rag — RAG-style search
+
+`search_rag` combines semantic search with MCP client [sampling](https://modelcontextprotocol.io/specification/2025-03-26/server/sampling) to deliver concise, query-aware results. Results are split into tiers:
+
+| Tier | Score | Behavior |
+|------|-------|----------|
+| **direct** | ≥ `directThreshold` (0.9) | Full content returned verbatim |
+| **related** | One-hop graph neighbors of direct hits | Summarized via LLM sampling |
+| **summarized** | ≥ `threshold` (0.85), < `directThreshold` | Summarized via LLM sampling |
+
+Every response includes a **references table** listing all used fragments with their similarity score, tier, and reason for inclusion.
+
+When the MCP client doesn't support sampling, summarized/related fragments fall back to metadata-only output (title, tags, and a content preview).
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `query` | — | Natural language search query |
+| `threshold` | 0.85 | Minimum similarity score for inclusion |
+| `directThreshold` | 0.9 | Score above which fragments are returned verbatim |
+| `maxTokens` | 500 | Max tokens for the LLM summary |
 
 ## CLI Commands
 

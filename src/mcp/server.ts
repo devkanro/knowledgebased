@@ -48,20 +48,17 @@ async function initializeKnowledge(
 ): Promise<void> {
   // Priority: --cwd > MCP roots > process.cwd()
   let startDir = cwdOverride ?? process.cwd();
-  let startDirSource = cwdOverride ? "--cwd" : "process.cwd()";
 
   if (!cwdOverride) {
     try {
       const rootsResult = await server.server.listRoots();
       const roots = rootsResult?.roots;
-      console.error(`knowledgebased: MCP roots: ${JSON.stringify(roots?.map(r => r.uri) ?? [])}`);
       if (roots && roots.length > 0) {
         // Find the first file:// root that looks like a local path
         for (const root of roots) {
           if (root.uri.startsWith("file://")) {
             try {
               startDir = fileURLToPath(root.uri);
-              startDirSource = "MCP roots";
               break;
             } catch {
               // Invalid URI — try next root
@@ -70,11 +67,9 @@ async function initializeKnowledge(
         }
       }
     } catch {
-      console.error("knowledgebased: MCP roots not supported by client");
+      // Client may not support roots — fall back to process.cwd()
     }
   }
-
-  console.error(`knowledgebased: startDir=${startDir} (from ${startDirSource})`);
 
   const sources = discoverSources(startDir);
   if (sources.length === 0) {

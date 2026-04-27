@@ -61,41 +61,14 @@ export const registerInspectTools: ToolRegistrar = (server, dctx) => {
   server.tool("list_sources", "List all loaded knowledge sources with their aliases, paths, and fragment counts.", {}, async () => {
     const ctx = await dctx.waitForInit();
     const sources = ctx.graph.sources;
-
-    // Diagnostic: MCP roots
-    let rootsInfo = "MCP roots: (not queried)";
-    try {
-      const rootsResult = await server.server.listRoots();
-      const roots = rootsResult?.roots;
-      rootsInfo = roots && roots.length > 0
-        ? `MCP roots: ${roots.map(r => r.uri).join(", ")}`
-        : "MCP roots: [] (empty)";
-    } catch (e) {
-      rootsInfo = `MCP roots: error (${(e as Error).message})`;
-    }
-
-    // Diagnostic: all environment variables
-    const envLines = Object.entries(process.env)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `  ${k}=${v}`);
-    const envInfo = `Env (${envLines.length} vars):\n${envLines.join("\n")}`;
-
-    const header = [
-      `startDir: ${ctx.outputRoot}`,
-      `process.cwd(): ${process.cwd()}`,
-      rootsInfo,
-      envInfo,
-    ].join("\n");
-
     if (sources.length === 0) {
-      return text(`${header}\n\nNo knowledge sources loaded.`);
+      return text("No knowledge sources loaded.");
     }
     const lines = sources.map(s => {
       const count = [...ctx.graph.sourceMap.values()].filter(v => v.sourceId === s.sourceId).length;
       return `- **${s.alias}**: ${s.knowledgeDir} (${count} fragments, refScope: ${s.refScope})`;
     });
-    return text(`${header}\n\nLoaded ${sources.length} source(s):\n\n${lines.join("\n")}`);
+    return text(`Loaded ${sources.length} source(s):\n\n${lines.join("\n")}`);
   });
 };
 

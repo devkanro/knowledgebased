@@ -72,12 +72,14 @@ Given `cwd = ~/workspace/my-project/`, here is every location the server checks:
 
 Walks up from cwd. At **each** ancestor directory, tries four patterns in order — **first match stops the entire walk**:
 
-| Priority | Pattern | Use case |
-|----------|---------|----------|
-| ① | `.knowledge.json` | Knowledge lives elsewhere; config points to it |
-| ② | `knowledge/` | Default — co-located and visible (most common) |
-| ③ | `.knowledge/` | Hidden from `ls` |
-| ④ | `../<project>.knowledge/` | Sibling folder — project repo stays unmodified |
+| Priority | Pattern | Within git root | Beyond git root |
+|----------|---------|:-:|:-:|
+| ① | `.knowledge.json` | ✅ | ✅ (explicit intent) |
+| ② | `knowledge/` | ✅ | ❌ (too generic) |
+| ③ | `.knowledge/` | ✅ | ❌ (too generic) |
+| ④ | `../<project>.knowledge/` | ✅ | ✅ (explicit naming) |
+
+Beyond the git root, only explicitly-intentioned patterns (① config pointer and ④ sibling) are checked. This prevents accidental matches with unrelated `knowledge/` directories in parent directories. If no git root is found, all patterns are tried at every level.
 
 Result: 0 or 1 **project source** (alias: `repo`, refs validated against cwd).
 

@@ -77,19 +77,28 @@ export function discoverKnowledge(
 /**
  * Walk up from `startDir` looking for a project-level knowledge source.
  * At each ancestor, try (in priority order):
- *   1. `.knowledge.json`
- *   2. `knowledge/`
- *   3. `.knowledge/`
- *   4. sibling `<basename>.knowledge/`
+ *   1. `.knowledge.json`    — always checked (explicit intent)
+ *   2. `knowledge/`         — only within git root (or if no git root found)
+ *   3. `.knowledge/`        — only within git root (or if no git root found)
+ *   4. sibling `<basename>.knowledge/` — always checked (explicit naming)
+ *
+ * Beyond the git root boundary, only patterns ① and ④ are tried,
+ * since `knowledge/` and `.knowledge/` are too generic to match
+ * outside the project tree. If no git root is found, all patterns
+ * are tried at every level (fallback for non-git directories).
  */
 function discoverProjectSource(startDir: string): DiscoveredSource | null {
   let current = resolve(startDir);
+  const gitRoot = findGitRoot(current);
 
   while (true) {
+    // Beyond git root: only try explicit patterns (config + sibling)
+    const beyondGitRoot = gitRoot !== null && !isPathPrefixOrEqual(gitRoot, current);
+
     const found =
       tryConfigFile(join(current, PROJECT_CONFIG_FILE), current) ??
-      tryDirectory(join(current, "knowledge")) ??
-      tryDirectory(join(current, ".knowledge")) ??
+      (beyondGitRoot ? null : tryDirectory(join(current, "knowledge"))) ??
+      (beyondGitRoot ? null : tryDirectory(join(current, ".knowledge"))) ??
       trySiblingSuffix(current);
 
     if (found) return found;
@@ -100,6 +109,24 @@ function discoverProjectSource(startDir: string): DiscoveredSource | null {
   }
 
   return null;
+}
+
+/** Find the nearest .git directory walking up from startDir. Returns null if none found. */
+function findGitRoot(startDir: string): string | null {
+  let current = resolve(startDir);
+  while (true) {
+    if (existsSync(join(current, ".git"))) return current;
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+/** Check if `prefix` is equal to or a parent of `target` (segment-boundary aware). */
+function isPathPrefixOrEqual(prefix: string, target: string): boolean {
+  const canonPrefix = canonPath(prefix);
+  const canonTarget = canonPath(target);
+  return canonPrefix === canonTarget || isPathPrefix(canonPrefix, canonTarget);
 }
 
 // ─── Phase 2: user-global config ────────────────────────────────

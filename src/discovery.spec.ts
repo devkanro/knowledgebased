@@ -169,6 +169,127 @@ test("discoverKnowledge: walks up checking sibling at each level", () => {
   }
 });
 
+// ─── Git root boundary ──────────────────────────────────────────
+
+test("discoverKnowledge: knowledge/ beyond git root is ignored", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    // Create a git repo at fx.root/repo
+    const repoDir = join(fx.root, "repo");
+    const srcDir = join(repoDir, "src");
+    mkdirSync(join(repoDir, ".git"), { recursive: true });
+    mkdirSync(srcDir, { recursive: true });
+
+    // Place knowledge/ outside git root (at fx.root level)
+    const outsideKb = join(fx.root, "knowledge");
+    mkdirSync(outsideKb, { recursive: true });
+
+    const result = discoverKnowledge(srcDir, NO_GLOBAL);
+    // Should NOT find the knowledge/ outside git root
+    if (result) {
+      assert.notEqual(result.knowledgeDir, outsideKb);
+    }
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: .knowledge/ beyond git root is ignored", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    const repoDir = join(fx.root, "repo");
+    mkdirSync(join(repoDir, ".git"), { recursive: true });
+
+    // Place .knowledge/ outside git root
+    const outsideKb = join(fx.root, ".knowledge");
+    mkdirSync(outsideKb, { recursive: true });
+
+    const result = discoverKnowledge(repoDir, NO_GLOBAL);
+    if (result) {
+      assert.notEqual(result.knowledgeDir, outsideKb);
+    }
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: sibling .knowledge/ works beyond git root", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    const repoDir = join(fx.root, "repo");
+    mkdirSync(join(repoDir, ".git"), { recursive: true });
+
+    // Sibling pattern at parent level (outside git root)
+    const siblingKb = join(fx.root, "repo.knowledge");
+    mkdirSync(siblingKb, { recursive: true });
+
+    const result = discoverKnowledge(repoDir, NO_GLOBAL);
+    assert.ok(result);
+    assert.equal(result.knowledgeDir, siblingKb);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: .knowledge.json works beyond git root", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    const repoDir = join(fx.root, "repo");
+    mkdirSync(join(repoDir, ".git"), { recursive: true });
+
+    // Place a config file and target dir outside git root
+    const externalKb = join(fx.root, "shared-kb");
+    mkdirSync(externalKb, { recursive: true });
+    writeFileSync(
+      join(fx.root, ".knowledge.json"),
+      JSON.stringify({ knowledge: "./shared-kb" }),
+      "utf-8"
+    );
+
+    const result = discoverKnowledge(repoDir, NO_GLOBAL);
+    assert.ok(result);
+    assert.equal(result.knowledgeDir, externalKb);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: knowledge/ inside git root still works", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    const repoDir = join(fx.root, "repo");
+    mkdirSync(join(repoDir, ".git"), { recursive: true });
+
+    const inRepoKb = join(repoDir, "knowledge");
+    mkdirSync(inRepoKb, { recursive: true });
+
+    const result = discoverKnowledge(repoDir, NO_GLOBAL);
+    assert.ok(result);
+    assert.equal(result.knowledgeDir, inRepoKb);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test("discoverKnowledge: no git root — all patterns work everywhere (fallback)", () => {
+  const fx = makeFixture({ withKnowledgeDir: false });
+  try {
+    // No .git anywhere in fixture
+    const childDir = join(fx.root, "deep", "nested");
+    mkdirSync(childDir, { recursive: true });
+
+    // Place knowledge/ at fx.root level
+    const kb = join(fx.root, "knowledge");
+    mkdirSync(kb, { recursive: true });
+
+    const result = discoverKnowledge(childDir, NO_GLOBAL);
+    assert.ok(result);
+    assert.equal(result.knowledgeDir, kb);
+  } finally {
+    fx.cleanup();
+  }
+});
+
 // ─── discoverSources (multi-source) ─────────────────────────────
 
 test("discoverSources: returns repo source with alias 'repo'", () => {

@@ -9,7 +9,10 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
   // ── search_knowledge ───────────────────────────────────────────
   server.tool(
     "search_knowledge",
-    "Search knowledge fragments by tags with graph traversal. Returns raw fragment contents.",
+    "Search knowledge fragments by tags with graph traversal. Returns raw fragment contents.\n\n" +
+      "Use this when you know the exact tags and need full, unabridged content for a specific domain. " +
+      "Prefer search_rag over this for answering questions (it summarizes automatically). " +
+      "Prefer search_semantic over this for exploring what the knowledge base covers.",
     {
       tags: z.array(z.string()).describe("Tags to search for"),
       hops: z
@@ -52,7 +55,9 @@ export const registerSearchTools: ToolRegistrar = (server, dctx) => {
   // ── search_semantic ────────────────────────────────────────────
   server.tool(
     "search_semantic",
-    "Semantic search across knowledge fragments using embeddings. Supports natural language queries in any language.",
+    "Semantic search across knowledge fragments using embeddings. Supports natural language queries in any language.\n\n" +
+      "Use this for exploring what the knowledge base covers or when you need raw fragment content with similarity scores. " +
+      "Prefer search_rag over this for answering user questions (it automatically summarizes lower-confidence results).",
     {
       query: z.string().describe("Natural language search query"),
       topK: z

@@ -15,6 +15,7 @@ type Tier = "direct" | "related" | "summarized" | "metadata-only";
 
 interface Reference {
   path: string;
+  title: string;
   score: number | null;
   tier: Tier;
   reason: string;
@@ -24,7 +25,10 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
   server.tool(
     "search_rag",
     "Semantic search with automatic summarization. High-confidence results are returned verbatim; " +
-      "lower-confidence and related documents are synthesized into a query-aware summary via LLM sampling.",
+      "lower-confidence and related documents are synthesized into a query-aware summary via LLM sampling.\n\n" +
+      "Use this when answering user questions — it delivers concise, ready-to-use answers. " +
+      "Prefer search_semantic over this when exploring what the knowledge base covers. " +
+      "Prefer search_knowledge over this when you need full unabridged content for specific tags.",
     {
       query: z.string().describe("Natural language search query"),
       threshold: z
@@ -141,7 +145,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
           expandedCount > 0
             ? `Score ≥ ${directThreshold}, expanded ${expandedCount} related`
             : `Score ≥ ${directThreshold}`;
-        refs.push({ path: f.path, score: scoreMap.get(f.path) ?? null, tier: "direct", reason });
+        refs.push({ path: f.path, title: f.title, score: scoreMap.get(f.path) ?? null, tier: "direct", reason });
       }
 
       // ── 6. Sampling / fallback ────────────────────────────────────
@@ -173,6 +177,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
       for (const f of summaryFragments) {
         refs.push({
           path: f.path,
+          title: f.title,
           score: scoreMap.get(f.path) ?? null,
           tier: samplingSucceeded ? "summarized" : "metadata-only",
           reason: samplingSucceeded
@@ -182,6 +187,8 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
       }
 
       for (const p of relatedPaths) {
+        const frag = ctx.graph.fragments.get(p);
+        const fragTitle = frag?.title ?? p;
         let linkedFrom = "";
         for (const dp of directPaths) {
           if (ctx.graph.graphIndex.get(dp)?.has(p)) {
@@ -191,6 +198,7 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
         }
         refs.push({
           path: p,
+          title: fragTitle,
           score: scoreMap.get(p) ?? null,
           tier: samplingSucceeded ? "related" : "metadata-only",
           reason: samplingSucceeded
@@ -202,12 +210,12 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
       // ── 8. Compose final response ─────────────────────────────────
       const refLines = refs.map(
         (r) =>
-          `| ${r.path} | ${r.score !== null ? r.score.toFixed(3) : "—"} | ${r.tier} | ${r.reason} |`
+          `| ${r.path} | ${r.title} | ${r.score !== null ? r.score.toFixed(3) : "—"} | ${r.tier} | ${r.reason} |`
       );
       const refsTable = [
         "## References\n",
-        "| Fragment | Score | Tier | Reason |",
-        "|----------|-------|------|--------|",
+        "| Fragment | Title | Score | Tier | Reason |",
+        "|----------|-------|-------|------|--------|",
         ...refLines,
       ].join("\n");
 
@@ -216,7 +224,19 @@ export const registerRagTools: ToolRegistrar = (server, dctx) => {
         directSection = `\n\n## Direct Results\n\n${formatFull(directFragments)}`;
       }
 
-      const body = `${refsTable}${directSection}${summarySection}`;
+      // Compression warning: if many fragments were summarized into few tokens
+      let warning = "";
+      if (samplingSucceeded && summarySection.length > 0) {
+        const summarizedCount = toSummarize.length;
+        const summaryLength = summarySection.length;
+        // Rough heuristic: if > 5 fragments and < 100 chars per fragment in summary
+        if (summarizedCount > 5 && summaryLength / summarizedCount < 100) {
+          warning = `\n\n> ⚠️ ${summarizedCount} fragments were compressed into a brief summary. ` +
+            `Consider using search_knowledge or search_semantic for full content.`;
+        }
+      }
+
+      const body = `${refsTable}${directSection}${summarySection}${warning}`;
       return text(body);
     }
   );

@@ -2,8 +2,8 @@ import { join } from "path";
 import { homedir } from "os";
 
 // ─── Embeddings ──────────────────────────────────────────────────
-export const EMBEDDING_MODEL = "Xenova/multilingual-e5-small";
-export const EMBEDDING_DIM = 384;
+export const EMBEDDING_MODEL = "Xenova/multilingual-e5-base";
+export const EMBEDDING_DIM = 768;
 export const EMBEDDING_CACHE_VERSION = 1;
 
 // ─── Search defaults ─────────────────────────────────────────────
